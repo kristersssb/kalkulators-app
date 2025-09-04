@@ -202,7 +202,7 @@ if st.button("Aprēķināt"):
         pirkts_no_tikla_list = []      # Iztrūkums, kas jāpērk
 
         # === Ielādējam ENTSO-E biržas cenas (EUR/MWh) ===
-        api_key = '7a765fc0-7f44-47fa-8ddd-790573b60c7d'
+        api_key = st.secrets["auth_api_key"]
         client = EntsoePandasClient(api_key=api_key)
         country_code = 'LV'
         start_entsoe = pd.Timestamp('2023-01-01 00:00', tz='Europe/Riga')
@@ -352,5 +352,6 @@ if st.session_state["rezultats"] is not None:
     
     
         
+
 
 # %%
