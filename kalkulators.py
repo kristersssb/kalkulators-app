@@ -147,10 +147,11 @@ if st.button("Aprēķināt"):
         inverter = cec_inverters['Huawei_Technologies_Co___Ltd___SUN2000_10KTL_USL0__240V_']
         temperature_parameters = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_polymer']
 
+        panelu_skaits = int(np.ceil((total_annual_consumption_kwh / 950) / 0.41))  # Aptuveni 950 kWh/kW gadā un 410 W panelis
         system = PVSystem(surface_tilt=30, surface_azimuth=225,
                         module_parameters=module, inverter_parameters=inverter,
                         temperature_model_parameters=temperature_parameters,
-                        modules_per_string = 12, strings_per_inverter = 1) # x paneļi virknē un y virknes uz invertoru
+                        modules_per_string = panelu_skaits, strings_per_inverter = 1) # x paneļi virknē un y virknes uz invertoru
 
         tmy_data, _ = pvlib.iotools.get_pvgis_tmy(
         latitude=latitude, 
@@ -370,3 +371,4 @@ if st.session_state["rezultats"] is not None:
         st.pyplot(fig3)
         
 # %%
+
