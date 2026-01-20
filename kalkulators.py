@@ -1,5 +1,5 @@
 # %%
-
+import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,6 +53,12 @@ with col2:
 
     col1, col2 = st.columns(2)
     with col1:
+        nominala_jauda_kw = st.number_input("Kāda ir vēlamā sistēmas nominālā jauda (kW)?", min_value=0.0, value=10.0, step=0.5)
+    with col2:
+        panel_azimuth = st.number_input("Paneļu azimuts (grādi, 0-360)?", min_value=0, max_value=360, value=180, step=5)
+
+    col1, col2 = st.columns(2)
+    with col1:
         akumulators = st.radio(
             "Vai vēlies izmantot akumulatoru?",
             ['Jā', 'Nē'],
@@ -86,8 +92,8 @@ location = Location(latitude=latitude, longitude=longitude, tz='Europe/Riga', al
 hourly_profile_shape = np.array([0.3, 0.2, 0.2, 0.2, 0.3, 0.4, 0.6, 0.8, 0.7, 0.6, 0.5, 0.5, 0.4, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0, 1.0, 0.9, 0.7, 0.5, 0.4])
 hourly_profile_shape = hourly_profile_shape / hourly_profile_shape.sum()
 
-# Definējam laika periodu (2023. gads, stundas)
-times = pd.date_range(start="2023-01-01 00:00", end="2023-12-31 23:00", freq='h', tz='Europe/Riga')
+# Definējam laika periodu (2025. gads, stundas)
+times = pd.date_range(start="2025-01-01 00:00", end="2025-12-31 23:00", freq='h', tz='Europe/Riga')
 
 # Pārbaudām, vai sesijas atmiņā vēl nav nepieciešamo mainīgo
 if "aprekins_palaists" not in st.session_state:
@@ -110,16 +116,16 @@ if st.button("Aprēķināt"):
         # Definējam parametrus katram mājas tipam
         if majas_tips == 'Standarta':
             monthly_consumption_points = {
-                '2023-01-15': 412, '2023-02-15': 401, '2023-03-15': 376, '2023-04-15': 311,
-                '2023-05-15': 307, '2023-06-15': 281, '2023-07-15': 295, '2023-08-15': 297,
-                '2023-09-15': 284, '2023-10-15': 334, '2023-11-15': 366, '2023-12-15': 422
+                '2025-01-15': 412, '2025-02-15': 401, '2025-03-15': 376, '2025-04-15': 311,
+                '2025-05-15': 307, '2025-06-15': 281, '2025-07-15': 295, '2025-08-15': 297,
+                '2025-09-15': 284, '2025-10-15': 334, '2025-11-15': 366, '2025-12-15': 422
             }
             chart_title = "Standarta mājas patēriņš"
         elif majas_tips == 'Ar siltumsūkni':
             monthly_consumption_points = {
-                '2023-01-15': 1800, '2023-02-15': 1200, '2023-03-15': 1000, '2023-04-15': 500,
-                '2023-05-15': 350,  '2023-06-15': 250,  '2023-07-15': 250,  '2023-08-15': 300,
-                '2023-09-15': 400,  '2023-10-15': 750,  '2023-11-15': 1200, '2023-12-15': 1500
+                '2025-01-15': 1800, '2025-02-15': 1200, '2025-03-15': 1000, '2025-04-15': 500,
+                '2025-05-15': 350,  '2025-06-15': 250,  '2025-07-15': 250,  '2025-08-15': 300,
+                '2025-09-15': 400,  '2025-10-15': 750,  '2025-11-15': 1200, '2025-12-15': 1500
             }
             chart_title = "Mājas ar siltumsūkni patēriņš"
         else:
@@ -128,7 +134,7 @@ if st.button("Aprēķināt"):
         # Sezonālais profils
         monthly_series = pd.Series(monthly_consumption_points)
         monthly_series.index = pd.to_datetime(monthly_series.index)
-        daily_profile_with_gaps = monthly_series.reindex(pd.date_range(start='2023-01-01', end='2023-12-31', freq='D'))
+        daily_profile_with_gaps = monthly_series.reindex(pd.date_range(start='2025-01-01', end='2025-12-31', freq='D'))
         interpolated_daily = daily_profile_with_gaps.interpolate(method='linear').bfill().ffill()
         daily_factors = interpolated_daily / interpolated_daily.sum()
         daily_consumption_kwh = daily_factors * total_annual_consumption_kwh
@@ -147,11 +153,15 @@ if st.button("Aprēķināt"):
         inverter = cec_inverters['Huawei_Technologies_Co___Ltd___SUN2000_10KTL_USL0__240V_']
         temperature_parameters = TEMPERATURE_MODEL_PARAMETERS['sapm']['open_rack_glass_polymer']
 
-        panelu_skaits = int(np.ceil((total_annual_consumption_kwh / 950) / 0.41))  # Aptuveni 950 kWh/kW gadā un 410 W panelis
-        system = PVSystem(surface_tilt=30, surface_azimuth=180,
+
+        panel_wattage_kw = 0.410 
+        system_size_panels = math.ceil(nominala_jauda_kw / panel_wattage_kw)
+        
+        
+        system = PVSystem(surface_tilt=30, surface_azimuth=panel_azimuth, 
                         module_parameters=module, inverter_parameters=inverter,
                         temperature_model_parameters=temperature_parameters,
-                        modules_per_string = panelu_skaits, strings_per_inverter = 1) # x paneļi virknē un y virknes uz invertoru
+                        modules_per_string = system_size_panels, strings_per_inverter = 1) 
 
         tmy_data, _ = pvlib.iotools.get_pvgis_tmy(
         latitude=latitude, 
@@ -183,8 +193,8 @@ if st.button("Aprēķināt"):
         api_key = st.secrets["auth_api_key"]
         client = EntsoePandasClient(api_key=api_key)
         country_code = 'LV'
-        start_entsoe = pd.Timestamp('2023-01-01 00:00', tz='Europe/Riga')
-        end_entsoe = pd.Timestamp('2023-12-31 23:00', tz='Europe/Riga')
+        start_entsoe = pd.Timestamp('2025-01-01 00:00', tz='Europe/Riga')
+        end_entsoe = pd.Timestamp('2025-12-31 23:00', tz='Europe/Riga')
         prices = client.query_day_ahead_prices(country_code, start=start_entsoe, end=end_entsoe)
         prices = prices.tz_convert('Europe/Riga')
         prices_kwh = (prices / 1000).reindex(times).fillna(method='ffill')
@@ -371,5 +381,4 @@ if st.session_state["rezultats"] is not None:
         st.pyplot(fig3)
         
 # %%
-
 
